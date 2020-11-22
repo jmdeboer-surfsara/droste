@@ -1,0 +1,46 @@
+---
+
+- name: check if EPEL repo is already configured
+  stat: path=/etc/yum.repos.d/epel.repo
+  register: epel_repofile_result
+  tags:
+    - epel
+ 
+- name: install EPEL repo
+  yum:
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+  register: result
+  when: not epel_repofile_result.stat.exists
+  tags:
+    - epel
+ 
+- name: import EPEL GPG key
+  rpm_key:
+    key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
+    state: present
+  when: not epel_repofile_result.stat.exists
+  tags:
+    - epel
+ 
+- name: disable firewalld
+  service: name=firewalld enabled=no state=stopped
+
+- name: set selinux to permissive
+  selinux: policy=targeted state=permissive
+
+- name: install packages
+  yum:
+    name:
+      - vim
+      - bash-completion
+      - bind-utils
+      - wget
+      - git
+      - ansible
+      - https://releases.hashicorp.com/vagrant/2.2.13/vagrant_2.2.13_x86_64.rpm
+      - https://download.virtualbox.org/virtualbox/6.0.24/VirtualBox-6.0-6.0.24_139119_el7-1.x86_64.rpm
+    state: present
+    update_cache: yes
+    disable_gpg_check: yes
+    validate_certs: no
